@@ -1,0 +1,9 @@
+Package: com.macthemes.axolotl
+Name: Axolotl
+Depends: mobilesubstrate
+Version: 1.0.1
+Architecture: iphoneos-arm
+Description: Blocks WhatsApp forced updates (fixed for 25.1.83)
+Maintainer: Your Name
+Author: Your Name
+Section: Tweaks
