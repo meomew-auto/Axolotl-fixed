@@ -35,6 +35,20 @@ static NSDate * (*_orig_WADeprecatedPlatformCutOffDate)();
 static NSString * (*_orig_WABuildVersion)(void *, void *);
 static NSString * (*_orig_WABuildHash)();
 
+// Prevents abort() when WhatsApp detects an internal invariant failure.
+// Must be hooked via MSHookFunction (not GOT rebinding) because
+// WAMessageGetUsecaseMessageSecret calls it as a direct internal call
+// within SharedModules, bypassing the GOT entirely.
+static void (*_orig_WAHandleFailureInFunction)(const char *, const char *, const char *, ...);
+static void _new_WAHandleFailureInFunction(const char *func, const char *file, const char *reason, ...)
+{
+	if (debugLogging)
+	{
+		NSLog(@"WAHandleFailureInFunction suppressed — func: %s reason: %s", func, reason);
+	}
+	// no-op: prevent abort()
+}
+
 /*
 	Functions …
 */
@@ -295,6 +309,21 @@ static NSDate *_new_WADeprecatedPlatformCutOffDate()
 
 		if (image)
 		{
+			// Hook WAHandleFailureInFunction to prevent abort() from internal calls.
+			// This must use MSHookFunction (not GOT rebinding) because WhatsApp and
+			// SharedModules call it directly without going through the import table.
+
+			void *_WAHandleFailureInFunctionPtr = dlsym(image, "WAHandleFailureInFunction");
+
+			if (_WAHandleFailureInFunctionPtr)
+			{
+				MSHookFunction(_WAHandleFailureInFunctionPtr, (void *)&_new_WAHandleFailureInFunction, (void **)&_orig_WAHandleFailureInFunction);
+			}
+			else if (debugLogging)
+			{
+				NSLog(@"Failed to find WAHandleFailureInFunction");
+			}
+
 			// Get Build Date and change it to our new Date …
 
 			void * _WAAppExpirationDate = dlsym(image, "WAAppExpirationDate");
