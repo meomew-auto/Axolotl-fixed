@@ -20,15 +20,16 @@ jobs:
         id: theos-cache
         with:
           path: ${{ github.workspace }}/theos
-          key: ${{ runner.os }}-theos-${{ hashFiles('Makefile') }}
+          key: ${{ runner.os }}-theos-master-146e41f
 
       - name: Install Theos
         if: steps.theos-cache.outputs.cache-hit != 'true'
         run: |
           set -e
           git clone --recursive https://github.com/theos/theos.git $THEOS
-          curl -sSL https://github.com/theos/sdks/releases/download/2024-09-02/iPhoneOS16.5.sdk.tar.xz \
-            | tar -xJf - -C $THEOS/sdks/
+          curl -sSL -o /tmp/sdk.tar.xz \
+            https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz
+          tar -xJf /tmp/sdk.tar.xz -C $THEOS/sdks/
 
       - name: Build DEB (Rootful)
         run: make package FINALPACKAGE=1
